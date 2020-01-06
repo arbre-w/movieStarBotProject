@@ -6,10 +6,10 @@ from selenium import webdriver
 from flask import Flask,render_template,jsonify,request
 
 # 셀레니움으로 크롤링 할 경우 하나하나 검색하는 브라우저가 뜬다. 브라우저를 안뜨게 하기 위해 Option추가
-#options = webdriver.ChromeOptions()
-#options.add_argument('headless')
-#options.add_argument('window-size=1920x1080')
-#options.add_argument("disable-gpu")
+options = webdriver.ChromeOptions()
+options.add_argument('headless')
+options.add_argument('window-size=1920x1080')
+options.add_argument("--disable-gpu")
 
 
 
@@ -31,15 +31,23 @@ for movie in Navermovies:
     # movie 안에 a 가 있으면,
     a_tag = movie.select_one('td.title > div > a')
     if a_tag is not None:
+        #네이버에서 제목하고 평점가져옴
         title = a_tag.text
-        star = movie.select_one('td.point').text
+        naverStar = movie.select_one('td.point').text
         #다음에서 영화 검색
-        driver = webdriver.Chrome(executable_path=r'\Users\kkkwl\chromdriver\chromedriver_win32\chromedriver')
+        driver = webdriver.Chrome(executable_path=r'\Users\kkkwl\chromdriver\chromedriver_win32\chromedriver', options=options)
         driver.implicitly_wait(3)
         driver.get("https://search.daum.net/search?w=tot&DA=YZR&t__nil_searchbox=btn&sug=&sugo=&q="+title)
         findingTag_names = driver.find_elements_by_id('moviePoint')
+        #DB에 Daum 평점 정보 넣기
         for tag in findingTag_names:
+            daumStar = tag.text
             print(tag.text)
+            doc = {
+                'title' : title,
+                'star' : daumStar
+            }
+            db.Daummovies.insert_one(doc)
 
         driver.quit()
 
@@ -52,7 +60,7 @@ for movie in Navermovies:
             #print(imgs)
             doc = {
                 'title' : title,
-                'star' : star,
+                'star' : naverStar,
                 'img' : imgs
 
             }
